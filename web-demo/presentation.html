@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>DePINfinity - Hackathon Demo Presentation</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+                    "Oxygen", "Ubuntu", "Cantarell", sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                overflow: hidden;
+            }
+
+            .presentation-container {
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                padding: 40px;
+            }
+
+            .slide {
+                display: none;
+                max-width: 1200px;
+                width: 100%;
+            }
+
+            .slide.active {
+                display: block;
+            }
+
+            .slide h1 {
+                font-size: 3.5rem;
+                font-weight: bold;
+                margin-bottom: 30px;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+
+            .slide h2 {
+                font-size: 2.5rem;
+                font-weight: bold;
+                margin-bottom: 20px;
+                color: #ffd700;
+            }
+
+            .slide h3 {
+                font-size: 2rem;
+                margin-bottom: 15px;
+                color: #87ceeb;
+            }
+
+            .slide p {
+                font-size: 1.4rem;
+                line-height: 1.6;
+                margin-bottom: 20px;
+                max-width: 800px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .feature-list {
+                text-align: left;
+                max-width: 600px;
+                margin: 0 auto;
+            }
+
+            .feature-list li {
+                font-size: 1.2rem;
+                margin-bottom: 10px;
+                padding-left: 20px;
+                position: relative;
+            }
+
+            .feature-list li::before {
+                content: "✓";
+                position: absolute;
+                left: 0;
+                color: #4caf50;
+                font-weight: bold;
+            }
+
+            .demo-button {
+                background: linear-gradient(45deg, #ff6b6b, #ffa500);
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                font-size: 1.2rem;
+                font-weight: bold;
+                border-radius: 25px;
+                cursor: pointer;
+                margin: 20px;
+                transition: transform 0.3s ease;
+            }
+
+            .demo-button:hover {
+                transform: scale(1.05);
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin: 30px 0;
+            }
+
+            .stat-card {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 20px;
+                border-radius: 15px;
+                backdrop-filter: blur(10px);
+            }
+
+            .stat-number {
+                font-size: 2.5rem;
+                font-weight: bold;
+                color: #ffd700;
+            }
+
+            .stat-label {
+                font-size: 1rem;
+                margin-top: 10px;
+            }
+
+            .navigation {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 10px;
+            }
+
+            .nav-button {
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 20px;
+                cursor: pointer;
+                transition: background 0.3s ease;
+            }
+
+            .nav-button:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+            .slide-counter {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.5);
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-size: 1.1rem;
+            }
+
+            .architecture-diagram {
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                margin: 40px 0;
+                flex-wrap: wrap;
+            }
+
+            .arch-component {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 20px;
+                border-radius: 15px;
+                margin: 10px;
+                min-width: 200px;
+                text-align: center;
+            }
+
+            .arch-component h4 {
+                color: #ffd700;
+                margin-bottom: 10px;
+            }
+
+            .demo-link {
+                display: inline-block;
+                background: linear-gradient(45deg, #4caf50, #2196f3);
+                color: white;
+                text-decoration: none;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 1.2rem;
+                font-weight: bold;
+                margin: 20px;
+                transition: transform 0.3s ease;
+            }
+
+            .demo-link:hover {
+                transform: scale(1.05);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="slide-counter">
+            <span id="currentSlide">1</span> / <span id="totalSlides">8</span>
+        </div>
+
+        <!-- Slide 1: Title & Problem Statement -->
+        <div class="slide active">
+            <div class="presentation-container">
+                <h1>DePINfinity</h1>
+                <h2>Decentralized Mobile Infrastructure</h2>
+                <p>
+                    Revolutionary hybrid platform combining user-participatory
+                    DePIN with permissioned blockchain for B2B transactions
+                </p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">2.5B</div>
+                        <div class="stat-label">Mobile Users Globally</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">$180B</div>
+                        <div class="stat-label">Telecom Market Size</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">30%</div>
+                        <div class="stat-label">Coverage Gaps</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Solution Architecture -->
+        <div class="slide">
+            <div class="presentation-container">
+                <h2>Hybrid Architecture</h2>
+                <p>
+                    Two-layer blockchain solution for maximum efficiency and
+                    privacy
+                </p>
+                <div class="architecture-diagram">
+                    <div class="arch-component">
+                        <h4>Public Layer</h4>
+                        <h3>Solana</h3>
+                        <p>
+                            User participation<br />Token incentives<br />Data
+                            collection
+                        </p>
+                    </div>
+                    <div class="arch-component">
+                        <h4>Private Layer</h4>
+                        <h3>Corda</h3>
+                        <p>
+                            B2B transactions<br />Roaming agreements<br />Data
+                            privacy
+                        </p>
+                    </div>
+                    <div class="arch-component">
+                        <h4>Mobile App</h4>
+                        <h3>React Native</h3>
+                        <p>
+                            Cross-platform<br />Real-time data<br />User
+                            interface
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Core User Experience -->
+        <div class="slide">
+            <div class="presentation-container">
+                <h2>User Experience</h2>
+                <p>
+                    Seamless device registration and automated data collection
+                    with quality-based rewards
+                </p>
+                <div class="feature-list">
+                    <li>Register smartphones, routers, and hotspots</li>
+                    <li>Automatic network quality data collection</li>
+                    <li>Real-time token rewards based on data quality</li>
+                    <li>Transparent statistics and earnings tracking</li>
+                </div>
+                <a href="index.html" class="demo-link" target="_blank"
+                    >Try Live Demo</a
+                >
+            </div>
+        </div>
+
+        <!-- Slide 4: B2B Integration -->
+        <div class="slide">
+            <div class="presentation-container">
+                <h2>B2B Integration & Solana Benefits</h2>
+                <p>
+                    Automated roaming agreements and infrastructure sharing with
+                    privacy-preserving data migration
+                </p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">65,000</div>
+                        <div class="stat-label">TPS on Solana</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">$0.00025</div>
+                        <div class="stat-label">Transaction Cost</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">400ms</div>
+                        <div class="stat-label">Block Time</div>
+                    </div>
+                </div>
+                <div class="feature-list">
+                    <li>Automated roaming agreement execution</li>
+                    <li>Infrastructure sharing contracts</li>
+                    <li>Privacy-preserving data aggregation</li>
+                    <li>Real-time revenue calculations</li>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Technical Implementation -->
+        <div class="slide">
+            <div class="presentation-container">
+                <h2>Technical Implementation</h2>
+                <p>
+                    Built with cutting-edge blockchain technology and modern
+                    development frameworks
+                </p>
+                <div class="feature-list">
+                    <li>Solana Program using Anchor framework</li>
+                    <li>Corda CorDapps for B2B transactions</li>
+                    <li>React Native for cross-platform mobile</li>
+                    <li>TypeScript for type safety</li>
+                    <li>Privacy-preserving data migration</li>
+                    <li>Automated smart contract settlements</li>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Feature Prioritization -->
+        <div class="slide">
+            <div class="presentation-container">
+                <h2>Feature Prioritization</h2>
+                <p>
+                    Focused on user incentives and B2B automation for
+                    sustainable ecosystem growth
+                </p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">Quality</div>
+                        <div class="stat-label">Based Rewards</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">Automated</div>
+                        <div class="stat-label">B2B Settlements</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">Privacy</div>
+                        <div class="stat-label">Preserving Data</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">Real-time</div>
+                        <div class="stat-label">Network Insights</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Demo Results -->
+        <div class="slide">
+            <div class="presentation-container">
+                <h2>Demo Results</h2>
+                <p>
+                    Realistic simulation of device registration, data
+                    collection, and B2B agreement execution
+                </p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">3</div>
+                        <div class="stat-label">Device Types</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">95%</div>
+                        <div class="stat-label">Data Quality</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">$2,500</div>
+                        <div class="stat-label">B2B Revenue</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Automated</div>
+                    </div>
+                </div>
+                <button
+                    class="demo-button"
+                    onclick="window.open('index.html', '_blank')"
+                >
+                    View Live Demo
+                </button>
+            </div>
+        </div>
+
+        <!-- Slide 8: Future Vision -->
+        <div class="slide">
+            <div class="presentation-container">
+                <h2>Future Vision</h2>
+                <p>
+                    Building the foundation for a global decentralized mobile
+                    infrastructure network
+                </p>
+                <div class="feature-list">
+                    <li>Global network coverage expansion</li>
+                    <li>Multi-carrier partnership ecosystem</li>
+                    <li>Advanced AI-powered network optimization</li>
+                    <li>Cross-border roaming automation</li>
+                </div>
+                <h3 style="margin-top: 40px; color: #ffd700">Thank You!</h3>
+                <p style="font-size: 1.2rem; margin-top: 20px">
+                    Ready to discuss technical implementation details
+                </p>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-button" onclick="previousSlide()">
+                Previous
+            </button>
+            <button class="nav-button" onclick="nextSlide()">Next</button>
+        </div>
+
+        <script>
+            let currentSlideIndex = 0;
+            const slides = document.querySelectorAll(".slide");
+            const totalSlides = slides.length;
+
+            document.getElementById("totalSlides").textContent = totalSlides;
+
+            function showSlide(index) {
+                slides.forEach((slide) => slide.classList.remove("active"));
+                slides[index].classList.add("active");
+                document.getElementById("currentSlide").textContent = index + 1;
+            }
+
+            function nextSlide() {
+                currentSlideIndex = (currentSlideIndex + 1) % totalSlides;
+                showSlide(currentSlideIndex);
+            }
+
+            function previousSlide() {
+                currentSlideIndex =
+                    (currentSlideIndex - 1 + totalSlides) % totalSlides;
+                showSlide(currentSlideIndex);
+            }
+
+            // Keyboard navigation
+            document.addEventListener("keydown", function (e) {
+                if (e.key === "ArrowRight" || e.key === " ") {
+                    nextSlide();
+                } else if (e.key === "ArrowLeft") {
+                    previousSlide();
+                }
+            });
+
+            // Auto-advance for demo (optional)
+            // setInterval(nextSlide, 20000); // 20 seconds per slide
+        </script>
+    </body>
+</html>
