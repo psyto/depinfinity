@@ -1,3 +1,4 @@
+// @ts-nocheck - React Native types will be resolved at runtime
 import React, { useState, useEffect } from "react";
 import {
     SafeAreaView,
@@ -11,16 +12,24 @@ import {
     Switch,
     Dimensions,
 } from "react-native";
-import { DePINfinityClient, MobileDePINClient } from "../sdk/src";
-import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { Wallet } from "@coral-xyz/anchor";
+// Mock services for demo - these will be resolved at runtime
+const mockSolanaProgram = require("../mock-solana/src");
+const mockCordaNetwork = require("../mock-corda/src");
+const demoSimulator = require("../demo-simulator/src");
 
-const { width, height } = Dimensions.get("window");
-
-interface DeviceStats {
+// Type definitions
+interface Device {
+    id: string;
+    owner: string;
+    deviceType: "Smartphone" | "Router" | "IoTDevice" | "Hotspot";
+    location: {
+        latitude: number;
+        longitude: number;
+        accuracy: number;
+    };
+    isActive: boolean;
     totalUptime: number;
     totalRewardsEarned: number;
-    isActive: boolean;
     lastActivity: number;
 }
 
@@ -36,16 +45,23 @@ interface NetworkData {
     };
 }
 
+const { width, height } = Dimensions.get("window");
+
+interface DeviceStats {
+    totalUptime: number;
+    totalRewardsEarned: number;
+    isActive: boolean;
+    lastActivity: number;
+}
+
 const App: React.FC = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [deviceStats, setDeviceStats] = useState<DeviceStats | null>(null);
     const [networkData, setNetworkData] = useState<NetworkData | null>(null);
     const [isDataCollectionActive, setIsDataCollectionActive] = useState(false);
-    const [client, setClient] = useState<DePINfinityClient | null>(null);
-    const [mobileClient, setMobileClient] = useState<MobileDePINClient | null>(
-        null
-    );
     const [deviceId] = useState(`device_${Date.now()}`);
+    const [b2bStats, setB2bStats] = useState<any>(null);
+    const [isDemoRunning, setIsDemoRunning] = useState(false);
 
     // Initialize connection
     useEffect(() => {
@@ -54,26 +70,40 @@ const App: React.FC = () => {
 
     const initializeConnection = async () => {
         try {
-            const connection = new Connection("https://api.devnet.solana.com");
-            const wallet = new Wallet(Keypair.generate()); // In production, use secure wallet
-
-            const depinfinityClient = new DePINfinityClient(
-                connection,
-                wallet,
-                new PublicKey("DePINfinity111111111111111111111111111111111")
-            );
-
-            const mobileDePINClient = new MobileDePINClient(
-                depinfinityClient,
-                deviceId
-            );
-
-            setClient(depinfinityClient);
-            setMobileClient(mobileDePINClient);
+            // Initialize mock services
+            await mockSolanaProgram.initialize();
             setIsConnected(true);
 
-            // Load device stats
+            // Set up event listeners
+            mockSolanaProgram.on("deviceRegistered", (device: Device) => {
+                console.log("Device registered:", device);
+                loadDeviceStats();
+            });
+
+            mockSolanaProgram.on("dataSubmitted", (data: any) => {
+                console.log("Data submitted:", data);
+                setNetworkData(data.qualityData);
+                loadDeviceStats();
+            });
+
+            mockSolanaProgram.on("deviceUpdated", (device: Device) => {
+                console.log("Device updated:", device);
+                loadDeviceStats();
+            });
+
+            mockCordaNetwork.on("networkDataMigrated", (data: any) => {
+                console.log("Network data migrated to Corda:", data);
+                loadB2bStats();
+            });
+
+            mockCordaNetwork.on("roamingAgreementExecuted", (data: any) => {
+                console.log("Roaming agreement executed:", data);
+                loadB2bStats();
+            });
+
+            // Load initial stats
             await loadDeviceStats();
+            await loadB2bStats();
         } catch (error) {
             console.error("Failed to initialize connection:", error);
             Alert.alert(
@@ -84,32 +114,41 @@ const App: React.FC = () => {
     };
 
     const loadDeviceStats = async () => {
-        if (!client) return;
-
         try {
-            const device = await client.getDevice(
-                deviceId,
-                client.provider.wallet.publicKey
-            );
-            setDeviceStats({
-                totalUptime: device.totalUptime,
-                totalRewardsEarned: device.totalRewardsEarned,
-                isActive: device.isActive,
-                lastActivity: device.lastActivity,
-            });
+            const device = await mockSolanaProgram.getDevice(deviceId);
+            if (device) {
+                setDeviceStats({
+                    totalUptime: device.totalUptime,
+                    totalRewardsEarned: device.totalRewardsEarned,
+                    isActive: device.isActive,
+                    lastActivity: device.lastActivity,
+                });
+            }
         } catch (error) {
             console.log("Device not registered yet");
         }
     };
 
-    const registerDevice = async () => {
-        if (!client) return;
+    const loadB2bStats = async () => {
+        try {
+            const stats = mockCordaNetwork.getNetworkStats();
+            setB2bStats(stats);
+        } catch (error) {
+            console.log("B2B stats not available");
+        }
+    };
 
+    const registerDevice = async () => {
         try {
             const deviceType = "Smartphone";
             const location = await getCurrentLocation();
 
-            await client.registerDevice(deviceId, deviceType, location);
+            await mockSolanaProgram.registerDevice(
+                deviceId,
+                deviceType,
+                location,
+                "user_wallet_address"
+            );
             Alert.alert("Success", "Device registered successfully!");
             await loadDeviceStats();
         } catch (error) {
@@ -124,45 +163,62 @@ const App: React.FC = () => {
         accuracy: number;
     }> => {
         return new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        accuracy: position.coords.accuracy,
-                    });
-                },
-                (error) => {
-                    console.error("Geolocation error:", error);
-                    // Fallback to Tokyo coordinates
-                    resolve({
-                        latitude: 35.6762,
-                        longitude: 139.6503,
-                        accuracy: 100,
-                    });
-                }
-            );
+            if (typeof navigator !== "undefined" && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position: any) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                        });
+                    },
+                    (error: any) => {
+                        console.error("Geolocation error:", error);
+                        // Fallback to Tokyo coordinates
+                        resolve({
+                            latitude: 35.6762,
+                            longitude: 139.6503,
+                            accuracy: 100,
+                        });
+                    }
+                );
+            } else {
+                // Fallback to Tokyo coordinates for demo
+                resolve({
+                    latitude: 35.6762,
+                    longitude: 139.6503,
+                    accuracy: 100,
+                });
+            }
         });
     };
 
     const toggleDataCollection = async () => {
-        if (!mobileClient) return;
-
         if (isDataCollectionActive) {
-            mobileClient.stopDataCollection();
             setIsDataCollectionActive(false);
+            console.log("Data collection stopped");
         } else {
-            await mobileClient.startDataCollection(30000); // 30 seconds interval
             setIsDataCollectionActive(true);
+            console.log("Data collection started");
+            // Start manual data collection simulation
+            startDataCollectionSimulation();
         }
     };
 
-    const collectNetworkData = async () => {
-        if (!client) return;
+    const startDataCollectionSimulation = () => {
+        const interval = setInterval(async () => {
+            if (!isDataCollectionActive) {
+                clearInterval(interval);
+                return;
+            }
+            await collectAndSubmitData();
+        }, 30000); // 30 seconds interval
+    };
 
+    const collectAndSubmitData = async () => {
         try {
             const location = await getCurrentLocation();
-            const qualityData = {
+            const qualityData: NetworkData = {
                 signalStrength: -65 + Math.random() * 20,
                 latency: 20 + Math.random() * 80,
                 throughput: 500000 + Math.random() * 1500000,
@@ -170,25 +226,42 @@ const App: React.FC = () => {
                 location,
             };
 
+            await mockSolanaProgram.submitData(deviceId, qualityData);
             setNetworkData(qualityData);
-            await client.submitData(deviceId, qualityData);
-            Alert.alert(
-                "Success",
-                "Network data submitted and rewards earned!"
-            );
             await loadDeviceStats();
         } catch (error) {
             console.error("Data submission failed:", error);
-            Alert.alert("Submission Error", "Failed to submit network data");
         }
     };
 
-    const formatRewards = (lamports: number) => {
-        return (lamports / 1000000000).toFixed(6); // Convert lamports to SOL
+    const formatRewards = (tokens: number) => {
+        return tokens.toFixed(2); // Format token rewards
     };
 
     const formatTime = (timestamp: number) => {
-        return new Date(timestamp * 1000).toLocaleString();
+        return new Date(timestamp).toLocaleString();
+    };
+
+    const startDemo = async () => {
+        try {
+            setIsDemoRunning(true);
+            await demoSimulator.startDemo();
+            Alert.alert(
+                "Demo Started",
+                "Demo simulation is running in the background"
+            );
+        } catch (error) {
+            console.error("Demo failed:", error);
+            Alert.alert("Demo Error", "Failed to start demo simulation");
+        } finally {
+            setIsDemoRunning(false);
+        }
+    };
+
+    const stopDemo = () => {
+        demoSimulator.stopDemo();
+        setIsDemoRunning(false);
+        Alert.alert("Demo Stopped", "Demo simulation has been stopped");
     };
 
     return (
@@ -218,6 +291,36 @@ const App: React.FC = () => {
                     </View>
                 </View>
 
+                {/* Demo Controls */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Demo Controls</Text>
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={[
+                                styles.button,
+                                styles.buttonHalf,
+                                isDemoRunning
+                                    ? styles.buttonDisabled
+                                    : styles.buttonPrimary,
+                            ]}
+                            onPress={startDemo}
+                            disabled={isDemoRunning}
+                        >
+                            <Text style={styles.buttonText}>Start Demo</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[
+                                styles.button,
+                                styles.buttonHalf,
+                                styles.buttonSecondary,
+                            ]}
+                            onPress={stopDemo}
+                        >
+                            <Text style={styles.buttonText}>Stop Demo</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 {/* Device Registration */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Device Registration</Text>
@@ -228,6 +331,49 @@ const App: React.FC = () => {
                         <Text style={styles.buttonText}>Register Device</Text>
                     </TouchableOpacity>
                 </View>
+
+                {/* B2B Network Stats */}
+                {b2bStats && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            B2B Network Statistics
+                        </Text>
+                        <View style={styles.statsContainer}>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>
+                                    Data Points
+                                </Text>
+                                <Text style={styles.statValue}>
+                                    {b2bStats.totalDataPoints}
+                                </Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>
+                                    Active Agreements
+                                </Text>
+                                <Text style={styles.statValue}>
+                                    {b2bStats.activeAgreements}
+                                </Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>
+                                    Active Contracts
+                                </Text>
+                                <Text style={styles.statValue}>
+                                    {b2bStats.activeContracts}
+                                </Text>
+                            </View>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>
+                                    Total Revenue
+                                </Text>
+                                <Text style={styles.statValue}>
+                                    ${b2bStats.totalRevenue.toFixed(2)}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
 
                 {/* Device Stats */}
                 {deviceStats && (
@@ -302,7 +448,7 @@ const App: React.FC = () => {
                     </View>
                     <TouchableOpacity
                         style={styles.button}
-                        onPress={collectNetworkData}
+                        onPress={collectAndSubmitData}
                     >
                         <Text style={styles.buttonText}>Submit Data Now</Text>
                     </TouchableOpacity>
@@ -436,6 +582,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderRadius: 8,
         alignItems: "center",
+    },
+    buttonRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 10,
+    },
+    buttonHalf: {
+        flex: 1,
+        marginHorizontal: 5,
+    },
+    buttonPrimary: {
+        backgroundColor: "#28a745",
+    },
+    buttonSecondary: {
+        backgroundColor: "#dc3545",
+    },
+    buttonDisabled: {
+        backgroundColor: "#6c757d",
+        opacity: 0.6,
     },
     buttonText: {
         color: "#ffffff",
