@@ -7,8 +7,6 @@
 * **Public Layer (Solana)**: Building a decentralized mobile network utilizing individual smartphones and distributing real-time token incentives.
 * **Private Layer (Corda)**: Providing a venue for NTT DOCOMO to conduct confidential B2B transactions with other enterprises based on the collected data.
 
----
-
 ## 2. How It Works
 
 ### Solana Component (DePIN)
@@ -26,8 +24,6 @@
 | **Data Integration** | Network quality data recorded on Solana is securely migrated to **Corda's permissioned network** after specific conditions (e.g., user consent, data aggregation) are met. |
 | **B2B Deals** | NTT DOCOMO can then conduct **confidential transactions** with other carriers or businesses (e.g., transportation companies, IoT device manufacturers) on Corda. These could involve shared infrastructure use or roaming agreements. Corda's privacy features ensure that transaction details are only shared among participating parties, **preventing unauthorized data leaks**. |
 | **Smart Contracts** | Corda's smart contracts (CorDapps) automate complex agreements, such as automated roaming fee settlements or shared infrastructure investment management, **reducing costs and manual effort** for businesses. |
-
----
 
 ## 3. Evaluation of DePINfinity, the Hybrid Mobile Infrastructure
 
