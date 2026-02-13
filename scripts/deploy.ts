@@ -337,7 +337,7 @@ class MobileAppDeployer {
 async function main() {
     const config: DeploymentConfig = {
         network: "devnet",
-        rpcUrl: "https://api.devnet.solana.com",
+        rpcUrl: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
         programId: "DePINfinity111111111111111111111111111111111",
         authorityKeypair: "./keys/authority.json",
         rewardVaultKeypair: "./keys/reward-vault.json",
