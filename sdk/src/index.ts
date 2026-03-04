@@ -14,15 +14,47 @@ import {
 } from "@solana/spl-token";
 import { DePINfinity } from "./types/depinfinity";
 
+/**
+ * Configuration for the DePINfinity client.
+ *
+ * Addresses can be supplied explicitly, pulled from environment variables,
+ * or fall back to PublicKey.default() so callers are never stuck with
+ * unreachable hard-coded placeholders.
+ */
+export interface DePINfinityConfig {
+    /** DOCOMO reward token mint address */
+    docomoMint?: PublicKey;
+    /** Program-owned token account that holds reward tokens */
+    rewardVault?: PublicKey;
+}
+
 export class DePINfinityClient {
     private program: Program<DePINfinity>;
     private connection: Connection;
     private provider: AnchorProvider;
+    private config: Required<DePINfinityConfig>;
 
-    constructor(connection: Connection, wallet: Wallet, programId: PublicKey) {
+    constructor(
+        connection: Connection,
+        wallet: Wallet,
+        programId: PublicKey,
+        config?: DePINfinityConfig
+    ) {
         this.connection = connection;
         this.provider = new AnchorProvider(connection, wallet, {});
         this.program = new Program(this.getProgramIdl(), this.provider);
+
+        const envMint = process.env.DOCOMO_MINT;
+        const envVault = process.env.REWARD_VAULT;
+
+        this.config = {
+            docomoMint:
+                config?.docomoMint ??
+                (envMint ? new PublicKey(envMint) : PublicKey.default),
+            rewardVault:
+                config?.rewardVault ??
+                (envVault ? new PublicKey(envVault) : PublicKey.default),
+        };
     }
 
     private getProgramIdl(): Idl {
@@ -285,7 +317,7 @@ export class DePINfinityClient {
         );
 
         // Get or create user token account
-        const mint = new PublicKey("DOCOMO1111111111111111111111111111111111"); // DOCOMO token mint
+        const mint = this.config.docomoMint;
         const userTokenAccount = await getAssociatedTokenAddress(
             mint,
             this.provider.wallet.publicKey
@@ -297,7 +329,7 @@ export class DePINfinityClient {
                 device: devicePDA,
                 dataSubmission: dataSubmissionPDA,
                 programState: programStatePDA,
-                rewardVault: new PublicKey("REWARD_VAULT_ADDRESS"), // Set actual vault address
+                rewardVault: this.config.rewardVault,
                 userTokenAccount: userTokenAccount,
                 user: this.provider.wallet.publicKey,
                 tokenProgram: TOKEN_PROGRAM_ID,

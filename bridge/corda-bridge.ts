@@ -153,20 +153,93 @@ export class CordaBridge {
 
     /**
      * Get data submissions from Solana program
+     *
+     * Queries on-chain DataSubmission accounts using getProgramAccounts with
+     * memcmp filters, then applies timestamp and optional geographic filters.
+     *
+     * Account data layout (after 8-byte Anchor discriminator):
+     *   device:          Pubkey  (32 bytes) offset  8
+     *   timestamp:       i64     ( 8 bytes) offset 40
+     *   signal_strength: i32     ( 4 bytes) offset 48
+     *   latency:         u32     ( 4 bytes) offset 52
+     *   throughput:      u64     ( 8 bytes) offset 56
+     *   availability:    f32     ( 4 bytes) offset 64
+     *   location.latitude:  f64  ( 8 bytes) offset 68
+     *   location.longitude: f64  ( 8 bytes) offset 76
+     *   location.accuracy:  f32  ( 4 bytes) offset 84
      */
     private async getDataSubmissions(
         timeRange: { start: number; end: number },
         region?: { latitude: number; longitude: number; radius: number }
     ): Promise<DataSubmission[]> {
-        // This would typically involve querying the Solana program accounts
-        // For now, we'll simulate the data retrieval
+        // Anchor discriminator for the DataSubmission account
+        // sha256("account:DataSubmission")[0..8]
+        const crypto = await import("crypto");
+        const discriminator = crypto
+            .createHash("sha256")
+            .update("account:DataSubmission")
+            .digest()
+            .subarray(0, 8);
+
+        const programId = this.solanaClient["program"].programId;
+
+        // Fetch all DataSubmission accounts filtered by discriminator
+        const accounts = await this.connection.getProgramAccounts(programId, {
+            filters: [
+                {
+                    memcmp: {
+                        offset: 0,
+                        bytes: Buffer.from(discriminator).toString("base64"),
+                        encoding: "base64" as any,
+                    },
+                },
+            ],
+        });
+
         const dataSubmissions: DataSubmission[] = [];
 
-        // In a real implementation, you would:
-        // 1. Query all DataSubmission accounts from the program
-        // 2. Filter by timestamp range
-        // 3. Filter by geographic region if specified
-        // 4. Return the filtered results
+        for (const { account } of accounts) {
+            const data = account.data;
+
+            // Parse fields from the account data buffer
+            const device = new PublicKey(data.subarray(8, 40)).toString();
+            const timestamp = Number(data.readBigInt64LE(40));
+            const signalStrength = data.readInt32LE(48);
+            const latency = data.readUInt32LE(52);
+            const throughput = Number(data.readBigUInt64LE(56));
+            const availability = data.readFloatLE(64);
+            const latitude = data.readDoubleLE(68);
+            const longitude = data.readDoubleLE(76);
+            const accuracy = data.readFloatLE(84);
+
+            // Filter by time range
+            if (timestamp < timeRange.start || timestamp > timeRange.end) {
+                continue;
+            }
+
+            // Filter by geographic region if specified
+            if (region) {
+                const distance = this.calculateDistance(
+                    region.latitude,
+                    region.longitude,
+                    latitude,
+                    longitude
+                );
+                if (distance > region.radius) {
+                    continue;
+                }
+            }
+
+            dataSubmissions.push({
+                device,
+                timestamp,
+                signalStrength,
+                latency,
+                throughput,
+                availability,
+                location: { latitude, longitude, accuracy },
+            });
+        }
 
         return dataSubmissions;
     }

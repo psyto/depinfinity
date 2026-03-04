@@ -7,6 +7,7 @@ import {
     mintTo,
     getAssociatedTokenAddress,
 } from "@solana/spl-token";
+import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -87,14 +88,47 @@ class DePINfinityDeployer {
     }
 
     /**
-     * Deploy the Solana program
+     * Deploy the Solana program using the Anchor CLI.
+     *
+     * Runs `anchor build` followed by `anchor deploy`, parses the program ID
+     * from the deploy output, and updates `this.config.programId` accordingly.
      */
     private async deploySolanaProgram(): Promise<void> {
-        // In a real deployment, this would use Anchor CLI
-        // For now, we'll simulate the deployment
+        const projectRoot = path.resolve(__dirname, "..");
+        const clusterFlag = `--provider.cluster ${this.config.network === "mainnet" ? "mainnet-beta" : this.config.network}`;
+
+        // Build the Anchor program
         console.log("   Building program...");
+        execSync(`anchor build`, {
+            cwd: projectRoot,
+            stdio: "inherit",
+        });
+
+        // Deploy the Anchor program
         console.log("   Deploying to", this.config.network, "...");
-        console.log("   Program ID:", this.config.programId);
+        const deployOutput = execSync(
+            `anchor deploy ${clusterFlag} --provider.wallet ${this.config.authorityKeypair}`,
+            {
+                cwd: projectRoot,
+                encoding: "utf-8",
+            }
+        );
+
+        // Parse the program ID from the deploy output.
+        // Anchor deploy prints a line like:
+        //   Program Id: <base58 program id>
+        const programIdMatch = deployOutput.match(
+            /Program\s+Id:\s+([A-Za-z0-9]{32,44})/
+        );
+        if (programIdMatch) {
+            this.config.programId = programIdMatch[1];
+            console.log("   Program deployed with ID:", this.config.programId);
+        } else {
+            console.log("   Deploy output:", deployOutput);
+            throw new Error(
+                "Failed to parse program ID from anchor deploy output"
+            );
+        }
     }
 
     /**
